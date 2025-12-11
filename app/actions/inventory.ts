@@ -18,7 +18,7 @@ export async function addConsumable(formData: FormData) {
   revalidatePath('/consumables')
 }
 
-// === 2. FERRAMENTAS (SIMPLIFICADO) ===
+// === 2. FERRAMENTAS ===
 export async function addAsset(formData: FormData) {
   await prisma.permanentItem.create({
     data: { 
@@ -30,40 +30,47 @@ export async function addAsset(formData: FormData) {
   revalidatePath('/assets')
 }
 
-// === 3. EMPRÉSTIMOS (REGISTRAR E BAIXAR) ===
-export async function registerLoan(formData: FormData) {
-  const itemId = formData.get('itemId') as string
-  const quantity = Number(formData.get('quantity'))
-
-  // 1. Verifica se tem saldo
-  const item = await prisma.permanentItem.findUnique({ where: { id: itemId }, include: { loans: true } })
-  if (!item) throw new Error("Item não encontrado")
+// === 3. EMPRÉSTIMOS (LOTE / VÁRIOS ITENS) ===
+export async function registerBatchLoan(data: { borrowerName: string, department: string, items: { itemId: string, quantity: number }[] }) {
   
-  const totalEmprestado = item.loans
-    .filter(l => l.status === 'EMPRESTADO')
-    .reduce((acc, l) => acc + l.quantity, 0)
+  // Realiza todas as operações juntas (se uma falhar, cancela tudo)
+  const result = await prisma.$transaction(async (tx) => {
+    const createdLoans = [];
 
-  const saldoDisponivel = item.quantity - totalEmprestado
+    for (const itemRequest of data.items) {
+      // 1. Verifica saldo
+      const item = await tx.permanentItem.findUnique({ where: { id: itemRequest.itemId }, include: { loans: true } });
+      if (!item) throw new Error(`Item não encontrado: ${itemRequest.itemId}`);
 
-  if (quantity > saldoDisponivel) {
-    throw new Error(`Saldo insuficiente! Disponível: ${saldoDisponivel}`)
-  }
+      const totalEmprestado = item.loans
+        .filter(l => l.status === 'EMPRESTADO')
+        .reduce((acc, l) => acc + l.quantity, 0);
 
-  // 2. Cria o empréstimo
-  const loan = await prisma.loan.create({
-    data: {
-      itemId,
-      borrowerName: formData.get('borrowerName') as string,
-      department: formData.get('department') as string,
-      quantity: quantity,
-      status: 'EMPRESTADO'
-    },
-    include: { item: true } // Retorna o item para podermos imprimir o nome
-  })
-  
-  revalidatePath('/loans')
-  revalidatePath('/assets')
-  return loan // Retorna os dados para o frontend imprimir
+      const saldoDisponivel = item.quantity - totalEmprestado;
+
+      if (itemRequest.quantity > saldoDisponivel) {
+        throw new Error(`Saldo insuficiente para ${item.name}! Disp: ${saldoDisponivel}`);
+      }
+
+      // 2. Cria o empréstimo
+      const loan = await tx.loan.create({
+        data: {
+          itemId: itemRequest.itemId,
+          borrowerName: data.borrowerName,
+          department: data.department,
+          quantity: itemRequest.quantity,
+          status: 'EMPRESTADO'
+        },
+        include: { item: true }
+      });
+      createdLoans.push(loan);
+    }
+    return createdLoans;
+  });
+
+  revalidatePath('/loans');
+  revalidatePath('/assets');
+  return result;
 }
 
 export async function returnLoan(loanId: string) {
@@ -74,7 +81,7 @@ export async function returnLoan(loanId: string) {
   revalidatePath('/loans')
 }
 
-// === 4. COMPRAS (PLANILHA ANTIGA) ===
+// === 4. COMPRAS ===
 export async function addPurchaseRequest(formData: FormData) {
   await prisma.purchaseRequest.create({
     data: {

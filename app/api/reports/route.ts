@@ -1,4 +1,3 @@
-// app/api/reports/route.ts
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 
@@ -8,16 +7,15 @@ export async function GET(req: Request) {
   const start = searchParams.get('start');
   const end = searchParams.get('end');
 
-  // Filtro de Data (se não vier, pega o último mês)
+  // Filtro de Data
   const startDate = start ? new Date(start) : new Date(new Date().setMonth(new Date().getMonth() - 1));
   const endDate = end ? new Date(end) : new Date();
-  // Ajusta o fim para pegar o dia inteiro (até 23:59:59)
   endDate.setHours(23, 59, 59, 999);
 
   let data: any[] = [];
 
   try {
-    // 1. INVENTÁRIO GERAL (Junta Consumíveis + Ferramentas)
+    // 1. INVENTÁRIO GERAL
     if (type === 'inventory') {
       const consumables = await prisma.consumableItem.findMany();
       const tools = await prisma.permanentItem.findMany();
@@ -28,22 +26,15 @@ export async function GET(req: Request) {
       ];
     } 
     
-    // 2. ESTOQUE BAIXO (Só consumíveis)
+    // 2. ESTOQUE BAIXO
     else if (type === 'low_stock') {
-      const items = await prisma.consumableItem.findMany({
-        where: { currentStock: { lte: 5 } } // Regra fixa de 5 ou use i.minQuantity se quiser
-      });
+      const items = await prisma.consumableItem.findMany({ where: { currentStock: { lte: 5 } } });
       data = items.map(i => ({
-        ID: i.id.slice(0, 8), // ID curto
-        Nome: i.name,
-        Atual: i.currentStock,
-        Minimo: i.minQuantity,
-        Unidade: i.unit,
-        Status: 'CRÍTICO 🚨'
+        ID: i.id.slice(0, 8), Nome: i.name, Atual: i.currentStock, Minimo: i.minQuantity, Unidade: i.unit, Status: 'CRÍTICO 🚨'
       }));
     }
 
-    // 3. MOVIMENTAÇÕES DE CONSUMO (Entradas e Saídas por Data)
+    // 3. MOVIMENTAÇÕES DE CONSUMO
     else if (type === 'transactions') {
       const trans = await prisma.stockTransaction.findMany({
         where: { date: { gte: startDate, lte: endDate } },
@@ -60,7 +51,7 @@ export async function GET(req: Request) {
       }));
     }
 
-    // 4. HISTÓRICO DE EMPRÉSTIMOS (Quem pegou ferramentas)
+    // 4. HISTÓRICO DE EMPRÉSTIMOS
     else if (type === 'loans_history') {
       const loans = await prisma.loan.findMany({
         where: { loanDate: { gte: startDate, lte: endDate } },
@@ -78,28 +69,42 @@ export async function GET(req: Request) {
       }));
     }
 
-    // 5. RANKING DE CONSUMO (O que mais sai)
+    // 5. RELATÓRIO DE COMPRAS (NOVO!)
+    else if (type === 'purchases') {
+      const purchases = await prisma.purchaseRequest.findMany({
+        where: { 
+          status: 'COMPRADO', // Só traz o que já foi comprado
+          data: { gte: startDate, lte: endDate } 
+        },
+        orderBy: { data: 'desc' }
+      });
+
+      data = purchases.map(p => ({
+        Data: new Date(p.data).toLocaleDateString('pt-BR'),
+        Solicitante: p.solicitante,
+        Departamento: p.departamento,
+        Item: p.descricao,
+        Qtd: p.quantidade,
+        Prioridade: p.prioridade,
+        Obs: p.observacao || '-'
+      }));
+    }
+
+    // 6. RANKING DE CONSUMO
     else if (type === 'ranking') {
-      // Agrupa transações de saída
       const trans = await prisma.stockTransaction.groupBy({
         by: ['itemId'],
         where: { type: 'OUT', date: { gte: startDate, lte: endDate } },
         _sum: { quantity: true },
         orderBy: { _sum: { quantity: 'desc' } },
-        take: 20 // Top 20
+        take: 20
       });
-
-      // Busca nomes dos itens (porque o groupBy só retorna ID)
       const itemIds = trans.map(t => t.itemId);
       const items = await prisma.consumableItem.findMany({ where: { id: { in: itemIds } } });
       
       data = trans.map(t => {
         const item = items.find(i => i.id === t.itemId);
-        return {
-          Item: item?.name || 'Item Excluído',
-          Total_Saida: t._sum.quantity,
-          Unidade: item?.unit || '-'
-        };
+        return { Item: item?.name || 'Excluído', Total_Saida: t._sum.quantity, Unidade: item?.unit || '-' };
       });
     }
 

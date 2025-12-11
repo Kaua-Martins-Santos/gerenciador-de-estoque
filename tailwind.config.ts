@@ -9,27 +9,40 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // FUNDOS
-        background: "#0f172a", // Azul Profundo (Slate 950)
-        surface: "#1e293b",    // Azul/Cinza (Slate 800) - Para Cards
+        // CORES PRINCIPAIS
+        background: "#0f172a", // Fundo geral (Slate 950)
+        foreground: "#f1f5f9", // Texto principal (Slate 100)
         
-        // TEXTOS
-        foreground: "#f1f5f9", // Branco Gelo (Slate 100)
-        muted: "#94a3b8",      // Cinza Azulado (Slate 400)
+        surface: "#1e293b",    // Cards e Paineis (Slate 800)
+        
+        // Mapeamentos para componentes do ShadcnUI
+        card: "#1e293b",       // Mapeia bg-card para surface
+        "card-foreground": "#f1f5f9",
+        
+        popover: "#1e293b",    // Mapeia bg-popover para surface (Resolve o Combobox Transparente!)
+        "popover-foreground": "#f1f5f9",
+        
+        muted: "#334155",      // Cinza mais escuro para fundos secundários
+        "muted-foreground": "#94a3b8", // Texto secundário
 
-        // BORDAS & LINHAS
-        border: "#334155",     // Slate 700
+        border: "#334155",     // Bordas (Slate 700)
+        input: "#334155",      // Bordas de inputs
 
-        // DESTAQUES (Botões e Ícones)
+        // DESTAQUES
         primary: "#818cf8",    // Indigo Neon
-        "primary-hover": "#6366f1", 
-        secondary: "#2dd4bf",  // Turquesa Neon (Teal 400)
-        accent: "#f472b6",     // Rosa Neon
+        "primary-foreground": "#0f172a", // Texto preto no botão roxo
+        
+        secondary: "#2dd4bf",  // Turquesa
+        "secondary-foreground": "#0f172a",
+
+        accent: "#f472b6",     // Rosa
+        "accent-foreground": "#0f172a",
         
         // STATUS
-        success: "#34d399",    // Verde
-        warning: "#fbbf24",    // Amarelo
-        danger: "#f87171",     // Vermelho Suave
+        destructive: "#f87171",
+        "destructive-foreground": "#ffffff",
+        success: "#34d399",
+        warning: "#fbbf24",
       },
     },
   },

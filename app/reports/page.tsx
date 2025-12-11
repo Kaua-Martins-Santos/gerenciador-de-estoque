@@ -1,4 +1,3 @@
-// app/reports/page.tsx
 'use client'
 
 import { useState } from "react";
@@ -18,7 +17,6 @@ export default function ReportsPage() {
 
   async function generateReport() {
     setLoading(true);
-    // Chama a nossa API nova
     const query = `/api/reports?type=${reportType}&start=${startDate}&end=${endDate}`;
     try {
       const res = await fetch(query);
@@ -33,16 +31,12 @@ export default function ReportsPage() {
 
   function downloadCSV() {
     if (data.length === 0) return;
-    
-    // Pega os cabeçalhos dinamicamente
     const headers = Object.keys(data[0]);
-    
-    // Cria CSV com suporte a acentos (BOM \ufeff)
     const csvContent = [
       headers.join(';'), 
       ...data.map(row => headers.map(fieldName => {
         const val = row[fieldName];
-        return typeof val === 'string' ? `"${val}"` : val; // Protege textos com aspas
+        return typeof val === 'string' ? `"${val}"` : val;
       }).join(';'))
     ].join('\r\n');
 
@@ -50,7 +44,7 @@ export default function ReportsPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `Relatorio_UNASP_${reportType}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `Relatorio_UNASP_${reportType}.csv`);
     document.body.appendChild(link);
     link.click();
   }
@@ -58,41 +52,42 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <h1 className="text-2xl font-bold text-slate-800">📈 Central de Relatórios</h1>
+        <h1 className="text-2xl font-bold text-white">📈 Central de Relatórios</h1>
       </div>
       
       {/* Barra de Filtros */}
-      <Card className="p-4 bg-slate-50 border-slate-200">
+      <Card className="p-6 bg-surface border-border shadow-lg">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
           
           <div className="md:col-span-2">
-            <label className="text-xs font-bold text-slate-500 mb-1 block">TIPO DE RELATÓRIO</label>
+            <label className="text-xs font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Tipo de Relatório</label>
             <Select onValueChange={setReportType} defaultValue="inventory">
-              <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectTrigger className="bg-background border-input text-foreground h-10"><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-surface border-border text-foreground">
                 <SelectItem value="inventory">📦 Inventário Geral (Tudo)</SelectItem>
                 <SelectItem value="low_stock">🚨 Estoque Baixo / Crítico</SelectItem>
-                <SelectItem value="transactions">arrows_left_right Movimentações de Consumo</SelectItem>
+                <SelectItem value="transactions">↔️ Movimentações de Consumo</SelectItem>
                 <SelectItem value="loans_history">📝 Histórico de Empréstimos</SelectItem>
+                <SelectItem value="purchases">🛒 Compras Realizadas</SelectItem>
                 <SelectItem value="ranking">🏆 Ranking (Mais Usados)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <label className="text-xs font-bold text-slate-500 mb-1 block">DATA INÍCIO</label>
-            <Input type="date" className="bg-white" onChange={e => setStartDate(e.target.value)} />
+            <label className="text-xs font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Início</label>
+            <Input type="date" className="bg-background border-input text-foreground h-10 block" onChange={e => setStartDate(e.target.value)} />
           </div>
 
           <div>
-            <label className="text-xs font-bold text-slate-500 mb-1 block">DATA FIM</label>
-            <Input type="date" className="bg-white" onChange={e => setEndDate(e.target.value)} />
+            <label className="text-xs font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Fim</label>
+            <Input type="date" className="bg-background border-input text-foreground h-10 block" onChange={e => setEndDate(e.target.value)} />
           </div>
 
           <Button 
             onClick={generateReport} 
             disabled={loading} 
-            className="bg-[#cba6f7] text-[#181825] font-bold hover:bg-[#b4befe]"
+            className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 h-10"
           >
             {loading ? <Loader2 className="animate-spin mr-2"/> : <Search className="mr-2 h-4 w-4"/>}
             Gerar
@@ -101,10 +96,9 @@ export default function ReportsPage() {
         </div>
       </Card>
 
-      {/* Botão de Download (só aparece se tiver dados) */}
       {data.length > 0 && (
         <div className="flex justify-end">
-          <Button onClick={downloadCSV} variant="outline" className="border-green-600 text-green-700 hover:bg-green-50">
+          <Button onClick={downloadCSV} variant="outline" className="border-success/30 text-success hover:bg-success/10 bg-transparent">
             <FileDown className="mr-2 h-4 w-4" />
             Baixar Excel (CSV)
           </Button>
@@ -112,22 +106,22 @@ export default function ReportsPage() {
       )}
 
       {/* Tabela de Resultados */}
-      <div className="border rounded-lg bg-white shadow-sm overflow-hidden">
+      <div className="border border-border rounded-lg bg-surface shadow-lg overflow-hidden">
         {data.length > 0 ? (
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-100">
-                <TableRow>
+              <TableHeader className="bg-muted/50">
+                <TableRow className="border-border hover:bg-transparent">
                   {Object.keys(data[0]).map((head) => (
-                    <TableHead key={head} className="font-bold text-slate-700 whitespace-nowrap">{head}</TableHead>
+                    <TableHead key={head} className="font-bold text-primary whitespace-nowrap uppercase text-xs">{head}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.map((row, i) => (
-                  <TableRow key={i} className="hover:bg-slate-50">
+                  <TableRow key={i} className="hover:bg-muted/20 border-border">
                     {Object.values(row).map((val: any, idx) => (
-                      <TableCell key={idx} className="whitespace-nowrap">
+                      <TableCell key={idx} className="whitespace-nowrap text-foreground">
                         {val}
                       </TableCell>
                     ))}
@@ -137,9 +131,9 @@ export default function ReportsPage() {
             </Table>
           </div>
         ) : (
-          <div className="p-12 text-center text-slate-400 flex flex-col items-center">
+          <div className="p-12 text-center text-muted-foreground flex flex-col items-center border border-dashed border-border m-4 rounded-lg bg-background/50">
             <Search className="h-12 w-12 mb-4 opacity-20" />
-            <p>Selecione um filtro e clique em "Gerar" para ver os dados.</p>
+            <p>Selecione um filtro acima e clique em "Gerar" para visualizar os dados.</p>
           </div>
         )}
       </div>

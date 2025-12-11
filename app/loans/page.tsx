@@ -1,141 +1,163 @@
-'use client'
+import { prisma } from "@/lib/db";
+import { AlertTriangle, Hammer, Package, TrendingUp, Activity, ArrowUpRight, ArrowDownLeft, CheckCircle2, ShoppingCart, PlusCircle } from "lucide-react";
+import { ConferenceButton } from "@/components/ConferenceButton";
 
-import { useEffect, useState } from "react";
-import { returnLoan } from "@/app/actions/inventory";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Printer, CheckCircle2, Search } from "lucide-react";
+export default async function Dashboard() {
+  // 1. Contadores
+  const totalConsumables = await prisma.consumableItem.count();
+  const lowStockItems = await prisma.consumableItem.count({ where: { currentStock: { lte: 5 } } });
+  const totalTools = await prisma.permanentItem.count();
+  const activeLoans = await prisma.loan.count({ where: { status: 'EMPRESTADO' } });
 
-export default function LoansPage() {
-  const [items, setItems] = useState<any[]>([]);
-  const [loans, setLoans] = useState<any[]>([]);
+  // 2. Itens para conferência
+  const allItems = [
+    ...(await prisma.consumableItem.findMany()),
+    ...(await prisma.permanentItem.findMany())
+  ];
 
-  useEffect(() => {
-    fetch('/api/loans-data').then(res => res.json()).then(data => {
-      setItems(data.items);
-      setLoans(data.loans);
-    });
-  }, []);
+  // 3. ATIVIDADE RECENTE COMPLETA
+  const lastTrans = await prisma.stockTransaction.findMany({ take: 5, orderBy: { date: 'desc' }, include: { item: true } });
+  const lastLoans = await prisma.loan.findMany({ take: 5, orderBy: { loanDate: 'desc' }, include: { item: true } });
+  const lastReturns = await prisma.loan.findMany({ where: { status: 'DEVOLVIDO', returnDate: { not: null } }, take: 5, orderBy: { returnDate: 'desc' }, include: { item: true } });
+  const lastItems = await prisma.consumableItem.findMany({ take: 3, orderBy: { createdAt: 'desc' } });
+  const lastTools = await prisma.permanentItem.findMany({ take: 3, orderBy: { createdAt: 'desc' } });
+  const lastPurchases = await prisma.purchaseRequest.findMany({ take: 3, orderBy: { data: 'desc' } });
 
-  async function handleLoan(formData: FormData) {
-    try {
-      const res = await fetch('/api/create-loan', { method: 'POST', body: formData });
-      const loan = await res.json();
-      if(loan.error) throw new Error(loan.error);
-      printTicket(loan);
-      setTimeout(() => window.location.reload(), 1000);
-    } catch (e: any) {
-      alert(e.message);
-    }
-  }
-
-  function printTicket(loan: any) {
-    const content = `
-      <html><body style="font-family: monospace; width: 80mm; font-size: 12px; text-align: center;">
-          <div style="font-weight: bold; font-size: 14px;">UNASP - MANUTENCAO</div>
-          <div>CONTROLE DE FERRAMENTAS</div>
-          <br/>
-          <div style="text-align: left;">DATA: ${new Date().toLocaleString('pt-BR')}</div>
-          <div style="text-align: left;">RETIRADO POR: ${loan.borrowerName}</div>
-          <div style="text-align: left;">SETOR: ${loan.department}</div>
-          <hr style="border-top: 1px dashed black;"/>
-          <div style="font-weight: bold; text-align: left; font-size: 14px;">${loan.quantity}x ${loan.item.name}</div>
-          <hr style="border-top: 1px dashed black;"/>
-          <br/><br/>
-          <div style="border-top: 1px solid black; margin-top: 20px;">ASSINATURA RESPONSAVEL</div>
-      </body></html>`;
-
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-    iframe.contentWindow?.document.write(content);
-    iframe.contentWindow?.document.close();
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-    setTimeout(() => document.body.removeChild(iframe), 2000);
-  }
+  const activities = [
+    // Estoque
+    ...lastTrans.map(t => ({
+      id: `t-${t.id}`, date: t.date,
+      text: `${t.type === 'IN' ? 'Entrada' : 'Saída'}: ${t.quantity}x ${t.item.name}`,
+      user: t.department || 'Ajuste',
+      icon: t.type === 'IN' ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />,
+      color: t.type === 'IN' ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'
+    })),
+    // Empréstimos
+    ...lastLoans.map(l => ({
+      id: `l-${l.id}`, date: l.loanDate,
+      text: `Empréstimo: ${l.quantity}x ${l.item.name}`,
+      user: l.borrowerName,
+      icon: <TrendingUp size={18} />,
+      color: 'bg-warning/20 text-warning'
+    })),
+    // Devoluções
+    ...lastReturns.map(l => ({
+      id: `r-${l.id}`, date: l.returnDate!,
+      text: `Devolução: ${l.quantity}x ${l.item.name}`,
+      user: l.borrowerName,
+      icon: <CheckCircle2 size={18} />,
+      color: 'bg-blue-500/20 text-blue-400'
+    })),
+    // Cadastros Novos (Itens + Ferramentas)
+    ...lastItems.map(i => ({
+      id: `nc-${i.id}`, date: i.createdAt,
+      text: `Novo Item: ${i.name}`,
+      user: 'Cadastro',
+      icon: <PlusCircle size={18} />,
+      color: 'bg-purple-500/20 text-purple-400'
+    })),
+    ...lastTools.map(t => ({
+      id: `nt-${t.id}`, date: t.createdAt,
+      text: `Nova Ferramenta: ${t.name}`,
+      user: 'Cadastro',
+      icon: <PlusCircle size={18} />,
+      color: 'bg-purple-500/20 text-purple-400'
+    })),
+    // Compras
+    ...lastPurchases.map(p => ({
+      id: `p-${p.id}`, date: p.data,
+      text: `Requisição: ${p.descricao}`,
+      user: p.solicitante,
+      icon: <ShoppingCart size={18} />,
+      color: 'bg-pink-500/20 text-pink-400'
+    }))
+  ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 7);
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-        <span className="bg-yellow-500/10 p-2 rounded-lg text-yellow-400 border border-yellow-500/20">📝</span> 
-        Registrar Empréstimo
-      </h1>
-      
-      <Card className="border-border bg-card shadow-lg">
-        <CardHeader className="border-b border-border pb-4">
-          <CardTitle className="text-lg font-medium text-white">Nova Retirada</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <form onSubmit={(e) => { e.preventDefault(); handleLoan(new FormData(e.currentTarget)) }} className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Ferramenta</label>
-              <Select name="itemId" required>
-                <SelectTrigger className="bg-background border-border text-foreground h-12"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent className="bg-card border-border text-foreground">
-                  {items.map((i: any) => (
-                    <SelectItem key={i.id} value={i.id}>{i.name} (Disp: {i.quantity - (i.loans?.reduce((a:any,b:any)=>a+b.quantity,0)||0)})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Quantidade</label>
-              <Input name="quantity" type="number" defaultValue="1" min="1" required className="bg-background border-border text-foreground h-12" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Funcionário</label>
-              <Input name="borrowerName" placeholder="Nome Completo" required className="bg-background border-border text-foreground h-12" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Setor</label>
-              <Select name="department" required defaultValue="Elétrica">
-                <SelectTrigger className="bg-background border-border text-foreground h-12"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-card border-border text-foreground">
-                  {['Elétrica','Hidráulica','Serralheria','Marmoraria','Construção','Refrigeração','Pintura'].map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="submit" className="md:col-span-2 h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-base shadow-lg shadow-primary/10">
-              <Printer className="mr-2 h-5 w-5"/> IMPRIMIR COMPROVANTE
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Cabeçalho */}
+      <div className="flex justify-between items-end border-b border-border pb-6">
+        <div>
+          <h2 className="text-3xl font-bold text-white">Visão Geral</h2>
+          <p className="text-muted-foreground mt-1">Monitoramento em tempo real do setor.</p>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1 bg-success/10 border border-success/20 rounded-full">
+          <span className="w-2 h-2 bg-success rounded-full animate-pulse"/>
+          <span className="text-xs font-bold text-success">ONLINE</span>
+        </div>
+      </div>
 
-      <div className="rounded-xl border border-border bg-card shadow-lg overflow-hidden">
-        <Table>
-          <TableHeader className="bg-muted/50">
-            <TableRow className="border-border hover:bg-transparent">
-              <TableHead className="text-primary">Data</TableHead>
-              <TableHead className="text-primary">Nome</TableHead>
-              <TableHead className="text-primary">Setor</TableHead>
-              <TableHead className="text-primary">Item</TableHead>
-              <TableHead className="text-primary text-center">Ação</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loans.filter((l:any) => l.status === 'EMPRESTADO').map((loan: any) => (
-              <TableRow key={loan.id} className="border-border hover:bg-muted/30">
-                <TableCell>{new Date(loan.loanDate).toLocaleDateString('pt-BR')}</TableCell>
-                <TableCell className="font-medium text-white">{loan.borrowerName}</TableCell>
-                <TableCell>{loan.department}</TableCell>
-                <TableCell><span className="text-yellow-400 font-bold">{loan.quantity}x</span> {loan.item.name}</TableCell>
-                <TableCell className="text-center">
-                  <form action={returnLoan.bind(null, loan.id)}>
-                    <Button size="sm" variant="outline" className="border-green-500/30 text-green-400 hover:bg-green-500/10 hover:text-green-300">
-                      <CheckCircle2 className="mr-2 h-4 w-4"/> Devolver
-                    </Button>
-                  </form>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card title="Consumíveis" value={totalConsumables} icon={<Package className="text-secondary"/>} border="border-secondary" />
+        <Card title="Estoque Baixo" value={lowStockItems} icon={<AlertTriangle className="text-destructive"/>} border="border-destructive" valueColor="text-destructive" />
+        <Card title="Ferramentas" value={totalTools} icon={<Hammer className="text-primary"/>} border="border-primary" />
+        <Card title="Empréstimos" value={activeLoans} icon={<TrendingUp className="text-warning"/>} border="border-warning" valueColor="text-warning" />
+      </div>
+
+      {/* Conteúdo Principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Atividade Recente */}
+        <div className="lg:col-span-2 bg-surface rounded-xl border border-border p-6 shadow-lg">
+          <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+            <Activity size={20} className="text-primary"/> Atividade Recente
+          </h3>
+          
+          <div className="space-y-4">
+            {activities.length === 0 ? (
+              <div className="h-40 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg bg-background/50 text-muted-foreground">
+                <p className="text-sm">Nenhuma atividade registrada hoje.</p>
+              </div>
+            ) : (
+              activities.map((activity) => (
+                <div key={activity.id} className="flex items-center justify-between p-3 bg-background/40 rounded-lg border border-border/50 hover:bg-background/60 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2 rounded-full ${activity.color} border border-white/5 shadow-sm`}>
+                      {activity.icon}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">{activity.text}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">{activity.user}</p>
+                    </div>
+                  </div>
+                  <div className="text-right min-w-[80px]">
+                    <p className="text-xs font-bold text-muted-foreground">{new Date(activity.date).toLocaleDateString('pt-BR')}</p>
+                    <p className="text-[10px] text-muted-foreground/60">{new Date(activity.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Avisos Rápidos */}
+        <div className="bg-surface rounded-xl border border-border p-6 shadow-lg h-fit">
+          <h3 className="text-lg font-bold text-white mb-6">Avisos Rápidos</h3>
+          <div className="space-y-4">
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <div className="flex items-center gap-2 text-destructive font-bold text-sm mb-1">
+                <AlertTriangle size={16}/> Crítico
+              </div>
+              <p className="text-sm text-white/80">{lowStockItems} itens precisam de reposição imediata.</p>
+            </div>
+            
+            <ConferenceButton items={allItems} />
+          </div>
+        </div>
       </div>
     </div>
   );
+}
+
+function Card({ title, value, icon, border, valueColor = "text-white" }: any) {
+  return (
+    <div className={`bg-surface p-6 rounded-xl border-l-4 ${border} shadow-lg hover:translate-y-[-2px] transition-all`}>
+      <div className="flex justify-between items-start mb-4">
+        <h3 className="text-muted-foreground text-xs font-bold uppercase tracking-wider">{title}</h3>
+        <div className="p-2 bg-background rounded-lg">{icon}</div>
+      </div>
+      <div className={`text-4xl font-bold ${valueColor}`}>{value}</div>
+    </div>
+  )
 }
