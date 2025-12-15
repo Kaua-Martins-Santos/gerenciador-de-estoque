@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DeleteButton } from "@/components/DeleteButton";
 
 export default async function AssetsPage() {
   const assets = await prisma.permanentItem.findMany({
@@ -34,7 +35,6 @@ export default async function AssetsPage() {
         </Dialog>
       </div>
 
-      {/* Tabela Dark Mode */}
       <div className="border border-border rounded-lg bg-surface shadow-lg overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/50">
@@ -44,6 +44,7 @@ export default async function AssetsPage() {
               <TableHead className="text-primary font-bold">Total</TableHead>
               <TableHead className="text-primary font-bold">Disponível</TableHead>
               <TableHead className="text-primary font-bold">Emprestados</TableHead>
+              <TableHead className="text-primary font-bold text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -57,6 +58,9 @@ export default async function AssetsPage() {
                   <TableCell className="text-white">{asset.quantity}</TableCell>
                   <TableCell className="font-bold text-success">{disponivel}</TableCell>
                   <TableCell className="text-warning font-bold">{emprestados}</TableCell>
+                  <TableCell className="text-right">
+                    <DeleteButton itemId={asset.id} itemName={asset.name} type="asset" />
+                  </TableCell>
                 </TableRow>
               )
             })}

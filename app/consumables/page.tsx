@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DeleteButton } from "@/components/DeleteButton";
 
 export default async function ConsumablesPage() {
   const items = await prisma.consumableItem.findMany({
@@ -30,17 +31,28 @@ export default async function ConsumablesPage() {
             <form action={addConsumable} className="space-y-4 mt-4">
               <Input name="name" placeholder="Nome do Item (ex: Caneta Azul)" required className="bg-background border-input" />
               <Input name="category" placeholder="Categoria (ex: Escritório)" required className="bg-background border-input" />
-              <div className="grid grid-cols-2 gap-4">
-                <Input name="unit" placeholder="Unidade (ex: cx, un, kg)" required className="bg-background border-input" />
-                <Input name="minQuantity" type="number" placeholder="Estoque Mínimo" required className="bg-background border-input" />
+              
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Qtd. Inicial</label>
+                  <Input name="quantity" type="number" placeholder="0" required className="bg-background border-input" />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Unidade</label>
+                  <Input name="unit" placeholder="cx, un..." required className="bg-background border-input" />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Mínimo</label>
+                  <Input name="minQuantity" type="number" placeholder="5" required className="bg-background border-input" />
+                </div>
               </div>
+
               <Button type="submit" className="w-full bg-primary text-primary-foreground font-bold">Salvar Item</Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* CORRIGIDO: bg-white -> bg-surface e bordas ajustadas */}
       <div className="border border-border rounded-lg bg-surface shadow-lg overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/50">
@@ -50,12 +62,13 @@ export default async function ConsumablesPage() {
               <TableHead className="text-primary font-bold">Estoque Atual</TableHead>
               <TableHead className="text-primary font-bold">Mínimo</TableHead>
               <TableHead className="text-primary font-bold">Status</TableHead>
+              <TableHead className="text-primary font-bold text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                   Nenhum item cadastrado ainda.
                 </TableCell>
               </TableRow>
@@ -74,6 +87,9 @@ export default async function ConsumablesPage() {
                     ) : (
                       <Badge className="bg-success text-black hover:bg-success/80 font-bold">OK</Badge>
                     )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DeleteButton itemId={item.id} itemName={item.name} type="consumable" />
                   </TableCell>
                 </TableRow>
               ))

@@ -13,10 +13,16 @@ import {
 } from "lucide-react";
 import { ConferenceButton } from "@/components/ConferenceButton";
 
+// ✅ CORREÇÃO 1: Forçar renderização dinâmica para dados em tempo real
+export const dynamic = 'force-dynamic';
+
 export default async function Dashboard() {
   // 1. Contadores (Cards do Topo)
   const totalConsumables = await prisma.consumableItem.count();
+  
+  // Verifica itens com estoque <= 5. Como itens novos nascem com 0, eles DEVEM aparecer aqui.
   const lowStockItems = await prisma.consumableItem.count({ where: { currentStock: { lte: 5 } } });
+  
   const totalTools = await prisma.permanentItem.count();
   const activeLoans = await prisma.loan.count({ where: { status: 'EMPRESTADO' } });
 
@@ -26,8 +32,7 @@ export default async function Dashboard() {
     ...(await prisma.permanentItem.findMany())
   ];
 
-  // 3. BUSCA DE ATIVIDADES RECENTES (A MÁGICA ACONTECE AQUI)
-  // Busca as últimas 5 de cada tipo para garantir que teremos dados recentes
+  // 3. BUSCA DE ATIVIDADES RECENTES
   const lastTrans = await prisma.stockTransaction.findMany({ 
     take: 5, orderBy: { date: 'desc' }, include: { item: true } 
   });
@@ -42,20 +47,19 @@ export default async function Dashboard() {
   });
   
   const lastItems = await prisma.consumableItem.findMany({ 
-    take: 3, orderBy: { createdAt: 'desc' } 
+    take: 5, orderBy: { createdAt: 'desc' } // Aumentei para 5 para garantir visibilidade
   });
   
   const lastTools = await prisma.permanentItem.findMany({ 
-    take: 3, orderBy: { createdAt: 'desc' } 
+    take: 5, orderBy: { createdAt: 'desc' } 
   });
   
   const lastPurchases = await prisma.purchaseRequest.findMany({ 
-    take: 3, orderBy: { data: 'desc' } 
+    take: 5, orderBy: { data: 'desc' } 
   });
 
   // Unifica tudo em uma lista só e ordena por data
   const activities = [
-    // Transações de Estoque (Entrada/Saída)
     ...lastTrans.map(t => ({
       id: `t-${t.id}`, 
       date: t.date,
@@ -64,7 +68,6 @@ export default async function Dashboard() {
       icon: t.type === 'IN' ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />,
       color: t.type === 'IN' ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'
     })),
-    // Empréstimos
     ...lastLoans.map(l => ({
       id: `l-${l.id}`, 
       date: l.loanDate,
@@ -73,7 +76,6 @@ export default async function Dashboard() {
       icon: <TrendingUp size={18} />,
       color: 'bg-warning/20 text-warning'
     })),
-    // Devoluções
     ...lastReturns.map(l => ({
       id: `r-${l.id}`, 
       date: l.returnDate!,
@@ -82,7 +84,6 @@ export default async function Dashboard() {
       icon: <CheckCircle2 size={18} />,
       color: 'bg-blue-500/20 text-blue-400'
     })),
-    // Cadastros Novos (Itens + Ferramentas)
     ...lastItems.map(i => ({
       id: `nc-${i.id}`, 
       date: i.createdAt,
@@ -99,7 +100,6 @@ export default async function Dashboard() {
       icon: <PlusCircle size={18} />,
       color: 'bg-purple-500/20 text-purple-400'
     })),
-    // Compras
     ...lastPurchases.map(p => ({
       id: `p-${p.id}`, 
       date: p.data,
@@ -109,8 +109,8 @@ export default async function Dashboard() {
       color: 'bg-pink-500/20 text-pink-400'
     }))
   ]
-  .sort((a, b) => b.date.getTime() - a.date.getTime()) // Ordena do mais recente para o antigo
-  .slice(0, 8); // Pega apenas os 8 últimos eventos
+  .sort((a, b) => b.date.getTime() - a.date.getTime()) 
+  .slice(0, 8); 
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -134,7 +134,6 @@ export default async function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* === ATIVIDADE RECENTE CORRIGIDA === */}
         <div className="lg:col-span-2 bg-surface rounded-xl border border-border p-6 shadow-lg">
           <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
             <Activity size={20} className="text-primary"/> Atividade Recente
@@ -174,7 +173,7 @@ export default async function Dashboard() {
               <div className="flex items-center gap-2 text-destructive font-bold text-sm mb-1">
                 <AlertTriangle size={16}/> Crítico
               </div>
-              <p className="text-sm text-white/80">{lowStockItems} itens precisam de reposição imediata.</p>
+              <p className="text-sm text-white/80">{lowStockItems} itens com estoque baixo/zerado.</p>
             </div>
             
             <ConferenceButton items={allItems} />
@@ -185,6 +184,7 @@ export default async function Dashboard() {
   );
 }
 
+// Componente Card auxiliar (sem alterações)
 function Card({ title, value, icon, border, valueColor = "text-white" }: any) {
   return (
     <div className={`bg-surface p-6 rounded-xl border-l-4 ${border} shadow-lg hover:translate-y-[-2px] transition-all`}>
