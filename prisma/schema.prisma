@@ -9,12 +9,12 @@ datasource db {
   url      = "file:./dev.db"
 }
 
-// === ITENS DE CONSUMO (GASTÁVEIS - PREGOS, FITA, ETC) ===
+// === ITENS DE CONSUMO ===
 model ConsumableItem {
   id           String             @id @default(uuid())
   name         String
-  category     String             // Elétrica, Hidráulica, etc.
-  unit         String             // Un, Kg, M
+  category     String
+  unit         String
   minQuantity  Int                @default(5)
   currentStock Int                @default(0)
   transactions StockTransaction[]
@@ -23,47 +23,68 @@ model ConsumableItem {
 
 model StockTransaction {
   id           String         @id @default(uuid())
-  type         String         // IN, OUT
+  type         String
   quantity     Int
   date         DateTime       @default(now())
-  reason       String?        
+  reason       String?
   department   String?        
   itemId       String
   item         ConsumableItem @relation(fields: [itemId], references: [id])
 }
 
-// === FERRAMENTAS / PATRIMÔNIO (FURADEIRAS, ESCADAS, ETC) ===
+// === FERRAMENTAS ===
 model PermanentItem {
   id           String   @id @default(uuid())
   name         String
-  category     String   // Categoria (Ferramenta Manual, Elétrica...)
-  quantity     Int      @default(1) // Quantidade total no estoque
+  category     String
+  quantity     Int      @default(1)
   loans        Loan[]
   createdAt    DateTime @default(now())
 }
 
-// === EMPRÉSTIMOS (O QUE VAI NO PAPELZINHO) ===
+// === EMPRÉSTIMOS ===
 model Loan {
   id             String        @id @default(uuid())
-  borrowerName   String        // Quem pegou
-  department     String        // Setor (Elétrica, Pintura...)
+  borrowerName   String
+  department     String
   loanDate       DateTime      @default(now())
   quantity       Int           @default(1)
-  status         String        @default("EMPRESTADO") // EMPRESTADO, DEVOLVIDO
+  status         String        @default("EMPRESTADO")
   itemId         String
   item           PermanentItem @relation(fields: [itemId], references: [id])
-  returnDate     DateTime?     // Preenchido quando devolve no sistema
+  returnDate     DateTime?
 }
 
-// === COMPRAS (IGUAL A PLANILHA ANTIGA) ===
+// === COMPRAS ===
 model PurchaseRequest {
+  id            String    @id @default(uuid())
+  data          DateTime  @default(now())
+  solicitante   String
+  departamento  String
+  descricao     String
+  quantidade    String
+  unidade       String?
+  justificativa String?
+  prioridade    String
+  valorUnitario Float?
+  status        String    @default("Solicitado") 
+  observacao    String?
+  dataEntrega   DateTime?
+  responsavel   String?
+}
+
+// === REPAROS (ATUALIZADO) ===
+model RepairOrder {
   id           String   @id @default(uuid())
-  data         DateTime @default(now())
-  solicitante  String
-  departamento String
-  descricao    String   // O item
-  quantidade   String   // Texto (ex: "2 caixas")
-  prioridade   String   // Baixa, Normal, Alta, Urgente
-  status       String   @default("PENDENTE")
+  dataEntrada  DateTime @default(now())
+  item         String   
+  problema     String   
+  departamento String   // Agora aceita texto livre
+  solicitante  String   
+  // Prioridade REMOVIDA
+  status       String   @default("Aguardando") 
+  tecnico      String?  
+  custoPecas   Float?   
+  dataSaida    DateTime?
   observacao   String?
 }

@@ -65,11 +65,12 @@ export default function ReportsPage() {
               <SelectTrigger className="bg-background border-input text-foreground h-10"><SelectValue /></SelectTrigger>
               <SelectContent className="bg-surface border-border text-foreground">
                 <SelectItem value="inventory">📦 Inventário Geral (Tudo)</SelectItem>
-                <SelectItem value="low_stock">🚨 Estoque Baixo / Crítico</SelectItem>
+                <SelectItem value="low_stock">🚨 Estoque Crítico</SelectItem>
                 <SelectItem value="transactions">↔️ Movimentações de Consumo</SelectItem>
                 <SelectItem value="loans_history">📝 Histórico de Empréstimos</SelectItem>
-                <SelectItem value="purchases">🛒 Compras Realizadas</SelectItem>
-                <SelectItem value="ranking">🏆 Ranking (Mais Usados)</SelectItem>
+                <SelectItem value="purchases">🛒 Detalhe de Compras</SelectItem>
+                <SelectItem value="spending_dept">💰 Gastos por Departamento</SelectItem>
+                <SelectItem value="repairs_stats">🔧 Relatório de Reparos</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -113,7 +114,7 @@ export default function ReportsPage() {
               <TableHeader className="bg-muted/50">
                 <TableRow className="border-border hover:bg-transparent">
                   {Object.keys(data[0]).map((head) => (
-                    <TableHead key={head} className="font-bold text-primary whitespace-nowrap uppercase text-xs">{head}</TableHead>
+                    <TableHead key={head} className="font-bold text-primary whitespace-nowrap uppercase text-xs">{head.replace(/_/g, ' ')}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>

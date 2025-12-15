@@ -8,19 +8,77 @@ export function ConferenceButton({ items }: { items: any[] }) {
     const content = `
       <html>
         <head>
+          <title>Conferência de Estoque - UNASP</title>
           <style>
-            body { font-family: 'Arial', sans-serif; font-size: 12px; color: black; }
-            h2 { text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-            th, td { border: 1px solid black; padding: 5px; text-align: left; }
-            th { background-color: #f0f0f0; }
-            .check { width: 30px; text-align: center; }
-            .qty { width: 60px; text-align: center; }
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+            
+            body { 
+              font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+              font-size: 11px; 
+              color: #1a1a1a; 
+              padding: 20px;
+            }
+            
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 3px solid #000;
+              padding-bottom: 15px;
+            }
+            
+            h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; }
+            p.subtitle { margin: 5px 0 0 0; font-size: 12px; color: #555; }
+
+            .info {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 20px;
+              font-weight: 600;
+              font-size: 13px;
+              border: 1px solid #ddd;
+              padding: 10px;
+              border-radius: 4px;
+              background: #f9f9f9;
+            }
+
+            table { width: 100%; border-collapse: collapse; }
+            
+            th { 
+              background-color: #eee; 
+              border: 1px solid #999; 
+              padding: 8px; 
+              text-align: left; 
+              font-weight: 800;
+              text-transform: uppercase;
+              font-size: 10px;
+            }
+            
+            td { 
+              border: 1px solid #ccc; 
+              padding: 6px 8px; 
+              vertical-align: middle;
+            }
+
+            .check { width: 40px; text-align: center; }
+            .check-box { width: 15px; height: 15px; border: 1px solid #333; display: inline-block; }
+            
+            .qty { width: 80px; text-align: center; font-weight: bold; }
+            .real { width: 100px; }
+            
+            tr:nth-child(even) { background-color: #fcfcfc; }
           </style>
         </head>
         <body>
-          <h2>CONFERÊNCIA DE ESTOQUE</h2>
-          <p><strong>DATA:</strong> ${new Date().toLocaleDateString('pt-BR')} &nbsp;&nbsp; <strong>RESPONSÁVEL:</strong> _________________</p>
+          <div class="header">
+            <h1>Relatório de Conferência</h1>
+            <p class="subtitle">UNASP - Engenheiro Coelho | Departamento de Manutenção</p>
+          </div>
+
+          <div class="info">
+            <span>DATA: ${new Date().toLocaleDateString('pt-BR')}</span>
+            <span>RESPONSÁVEL: ___________________________________</span>
+          </div>
+
           <table>
             <thead>
               <tr>
@@ -28,17 +86,17 @@ export function ConferenceButton({ items }: { items: any[] }) {
                 <th>ITEM</th>
                 <th>CATEGORIA</th>
                 <th class="qty">SISTEMA</th>
-                <th>CONTAGEM REAL</th>
+                <th class="real">CONTAGEM REAL</th>
               </tr>
             </thead>
             <tbody>
               ${items.map((i: any) => `
                 <tr>
-                  <td class="check"> </td>
+                  <td class="check"><span class="check-box"></span></td>
                   <td>${i.name}</td>
                   <td>${i.category}</td>
                   <td class="qty">${i.currentStock !== undefined ? i.currentStock : i.quantity}</td>
-                  <td></td>
+                  <td class="real"></td>
                 </tr>
               `).join('')}
             </tbody>

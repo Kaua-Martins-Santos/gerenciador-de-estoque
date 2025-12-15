@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, Package, Hammer, FileText, ShoppingCart, BarChart3, LogOut, History } from "lucide-react";
+import { LayoutDashboard, Package, Hammer, FileText, ShoppingCart, BarChart3, LogOut, History, Wrench } from "lucide-react";
 
 export function Sidebar() {
   return (
@@ -7,7 +7,6 @@ export function Sidebar() {
       {/* Logo */}
       <div className="p-8 pb-6 border-b border-border/50">
         <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-          {/* MUDANÇA AQUI: UNASP dentro do span colorido, EC fora */}
           <span className="bg-primary/20 text-primary p-1 rounded">UNASP</span>EC
         </h1>
         <p className="text-xs text-muted-foreground mt-1 uppercase tracking-widest font-semibold">Manutenção</p>
@@ -22,6 +21,7 @@ export function Sidebar() {
         <NavItem href="/consumables" icon={<Package size={20}/>} label="Consumíveis" color="text-secondary" />
         <NavItem href="/assets" icon={<Hammer size={20}/>} label="Ferramentas" color="text-primary" />
         <NavItem href="/loans" icon={<FileText size={20}/>} label="Empréstimos" color="text-warning" />
+        <NavItem href="/repairs" icon={<Wrench size={20}/>} label="Reparos" color="text-orange-400" /> {/* NOVO */}
         <NavItem href="/history" icon={<History size={20}/>} label="Histórico" color="text-white" />
         
         <p className="px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider mt-6 mb-2">Admin</p>

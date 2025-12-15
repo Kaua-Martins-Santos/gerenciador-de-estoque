@@ -30,15 +30,11 @@ export async function addAsset(formData: FormData) {
   revalidatePath('/assets')
 }
 
-// === 3. EMPRÉSTIMOS (LOTE / VÁRIOS ITENS) ===
+// === 3. EMPRÉSTIMOS ===
 export async function registerBatchLoan(data: { borrowerName: string, department: string, items: { itemId: string, quantity: number }[] }) {
-  
-  // Realiza todas as operações juntas (se uma falhar, cancela tudo)
   const result = await prisma.$transaction(async (tx) => {
     const createdLoans = [];
-
     for (const itemRequest of data.items) {
-      // 1. Verifica saldo
       const item = await tx.permanentItem.findUnique({ where: { id: itemRequest.itemId }, include: { loans: true } });
       if (!item) throw new Error(`Item não encontrado: ${itemRequest.itemId}`);
 
@@ -52,7 +48,6 @@ export async function registerBatchLoan(data: { borrowerName: string, department
         throw new Error(`Saldo insuficiente para ${item.name}! Disp: ${saldoDisponivel}`);
       }
 
-      // 2. Cria o empréstimo
       const loan = await tx.loan.create({
         data: {
           itemId: itemRequest.itemId,
@@ -67,7 +62,6 @@ export async function registerBatchLoan(data: { borrowerName: string, department
     }
     return createdLoans;
   });
-
   revalidatePath('/loans');
   revalidatePath('/assets');
   return result;
@@ -83,21 +77,28 @@ export async function returnLoan(loanId: string) {
 
 // === 4. COMPRAS ===
 export async function addPurchaseRequest(formData: FormData) {
+  const valorRaw = formData.get('valorUnitario') as string;
+  const valorUnitario = valorRaw ? parseFloat(valorRaw.replace(',', '.')) : 0;
+
   await prisma.purchaseRequest.create({
     data: {
       solicitante: formData.get('solicitante') as string,
       departamento: formData.get('departamento') as string,
       descricao: formData.get('descricao') as string,
       quantidade: formData.get('quantidade') as string,
+      unidade: formData.get('unidade') as string,
+      justificativa: formData.get('justificativa') as string,
       prioridade: formData.get('prioridade') as string,
+      valorUnitario: valorUnitario,
       observacao: formData.get('observacao') as string,
+      status: 'Solicitado'
     }
   })
   revalidatePath('/shopping')
 }
 
 export async function togglePurchaseStatus(id: string, currentStatus: string) {
-  const newStatus = currentStatus === 'PENDENTE' ? 'COMPRADO' : 'PENDENTE';
+  const newStatus = currentStatus === 'Solicitado' ? 'Aprovado' : (currentStatus === 'Aprovado' ? 'Comprado' : (currentStatus === 'Comprado' ? 'Entregue' : 'Solicitado'));
   await prisma.purchaseRequest.update({ where: { id }, data: { status: newStatus } })
   revalidatePath('/shopping')
 }
@@ -105,4 +106,32 @@ export async function togglePurchaseStatus(id: string, currentStatus: string) {
 export async function deletePurchase(id: string) {
   await prisma.purchaseRequest.delete({ where: { id } })
   revalidatePath('/shopping')
+}
+
+// === 5. REPAROS (ATUALIZADO) ===
+export async function addRepairOrder(formData: FormData) {
+  await prisma.repairOrder.create({
+    data: {
+      item: formData.get('item') as string,
+      problema: formData.get('problema') as string,
+      departamento: formData.get('departamento') as string, // Agora pega do Input
+      solicitante: formData.get('solicitante') as string,
+      observacao: formData.get('observacao') as string,
+      status: 'Aguardando'
+      // Prioridade removida
+    }
+  })
+  revalidatePath('/repairs')
+}
+
+export async function updateRepairStatus(id: string, newStatus: string) {
+  const data: any = { status: newStatus };
+  if (newStatus === 'Concluído') data.dataSaida = new Date();
+  await prisma.repairOrder.update({ where: { id }, data })
+  revalidatePath('/repairs')
+}
+
+export async function deleteRepair(id: string) {
+  await prisma.repairOrder.delete({ where: { id } })
+  revalidatePath('/repairs')
 }
