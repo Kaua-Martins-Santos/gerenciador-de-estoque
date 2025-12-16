@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DeleteButton } from "@/components/DeleteButton";
+import { ConsumeButton } from "@/components/ConsumeButton";
 
 export default async function ConsumablesPage() {
   const items = await prisma.consumableItem.findMany({
@@ -88,7 +89,13 @@ export default async function ConsumablesPage() {
                       <Badge className="bg-success text-black hover:bg-success/80 font-bold">OK</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right flex justify-end items-center gap-1">
+                    <ConsumeButton 
+                      itemId={item.id} 
+                      itemName={item.name} 
+                      currentStock={item.currentStock} 
+                      unit={item.unit}
+                    />
                     <DeleteButton itemId={item.id} itemName={item.name} type="consumable" />
                   </TableCell>
                 </TableRow>

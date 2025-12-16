@@ -5,7 +5,6 @@ import { revalidatePath } from 'next/cache'
 
 // === 1. CONSUMÍVEIS ===
 export async function addConsumable(formData: FormData) {
-  // Captura a quantidade inicial (padrão 0 se vazio)
   const initialStock = Number(formData.get('quantity')) || 0;
 
   await prisma.consumableItem.create({
@@ -18,7 +17,45 @@ export async function addConsumable(formData: FormData) {
     }
   })
   revalidatePath('/consumables')
-  revalidatePath('/') // Atualiza o Dashboard
+  revalidatePath('/')
+}
+
+export async function registerConsumption(formData: FormData) {
+  const itemId = formData.get('itemId') as string;
+  const quantity = Number(formData.get('quantity'));
+  const department = formData.get('department') as string;
+
+  // 1. Verifica estoque atual
+  const item = await prisma.consumableItem.findUnique({ where: { id: itemId } });
+  
+  if (!item) {
+    return { success: false, message: "Item não encontrado." };
+  }
+
+  if (item.currentStock < quantity) {
+    return { success: false, message: `Saldo insuficiente! Disponível: ${item.currentStock}` };
+  }
+
+  // 2. Transação Atômica: Cria histórico de SAÍDA e Atualiza saldo
+  await prisma.$transaction([
+    prisma.stockTransaction.create({
+      data: {
+        itemId: itemId,
+        type: 'OUT',
+        quantity: quantity,
+        department: department, // Quem retirou
+        date: new Date()
+      }
+    }),
+    prisma.consumableItem.update({
+      where: { id: itemId },
+      data: { currentStock: { decrement: quantity } }
+    })
+  ]);
+
+  revalidatePath('/consumables');
+  revalidatePath('/'); // Atualiza Dashboard para mostrar atividade recente
+  return { success: true };
 }
 
 // === 2. FERRAMENTAS ===
@@ -31,7 +68,7 @@ export async function addAsset(formData: FormData) {
     }
   })
   revalidatePath('/assets')
-  revalidatePath('/') // Atualiza o Dashboard
+  revalidatePath('/')
 }
 
 // === 3. EMPRÉSTIMOS ===
@@ -69,7 +106,7 @@ export async function registerBatchLoan(data: { borrowerName: string, department
   
   revalidatePath('/loans');
   revalidatePath('/assets');
-  revalidatePath('/'); // Atualiza o Dashboard
+  revalidatePath('/');
   return result;
 }
 
@@ -80,7 +117,7 @@ export async function returnLoan(loanId: string) {
   })
   revalidatePath('/loans')
   revalidatePath('/assets')
-  revalidatePath('/') // Atualiza o Dashboard
+  revalidatePath('/')
 }
 
 // === 4. COMPRAS ===
@@ -149,17 +186,16 @@ export async function deleteRepair(id: string) {
   revalidatePath('/')
 }
 
-// === 6. EXCLUSÃO GERAL (NOVO) ===
+// === 6. EXCLUSÃO ===
 export async function deleteItem(id: string, type: 'consumable' | 'asset') {
   try {
     if (type === 'consumable') {
-      // Deleta histórico de transações para evitar erro de foreign key
       await prisma.stockTransaction.deleteMany({ where: { itemId: id } })
       await prisma.consumableItem.delete({ where: { id } })
+      
       revalidatePath('/consumables')
     } 
     else if (type === 'asset') {
-      // Verifica empréstimos ATIVOS
       const activeLoan = await prisma.loan.findFirst({
         where: { itemId: id, status: 'EMPRESTADO' }
       })
@@ -168,13 +204,13 @@ export async function deleteItem(id: string, type: 'consumable' | 'asset') {
         return { success: false, message: "Não é possível excluir: Item está emprestado!" }
       }
 
-      // Deleta histórico de empréstimos antigos e o item
       await prisma.loan.deleteMany({ where: { itemId: id } })
       await prisma.permanentItem.delete({ where: { id } })
+      
       revalidatePath('/assets')
     }
 
-    revalidatePath('/') // Atualiza Dashboard
+    revalidatePath('/')
     return { success: true }
     
   } catch (error) {
