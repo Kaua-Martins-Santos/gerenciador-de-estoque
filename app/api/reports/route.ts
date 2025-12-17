@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   let data: any[] = [];
 
   try {
-    // 1. INVENTÁRIO GERAL
+    // 1. INVENTÁRIO GERAL (ESTOQUE ATUAL)
     if (type === 'inventory') {
       const consumables = await prisma.consumableItem.findMany();
       const tools = await prisma.permanentItem.findMany();
@@ -45,20 +45,24 @@ export async function GET(req: Request) {
       }));
     }
 
-    // 4. EMPRÉSTIMOS
-    else if (type === 'loans_history') {
+    // 4. EMPRÉSTIMOS (GERALZÃO)
+    else if (type === 'loans_general') {
       const loans = await prisma.loan.findMany({
         where: { loanDate: { gte: startDate, lte: endDate } },
         include: { item: true }, orderBy: { loanDate: 'desc' }
       });
       data = loans.map(l => ({
-        Data: new Date(l.loanDate).toLocaleDateString('pt-BR'), Funcionario: l.borrowerName,
-        Setor: l.department, Item: l.item.name, Qtd: l.quantity, Status: l.status
+        Data: new Date(l.loanDate).toLocaleDateString('pt-BR'), 
+        Funcionario: l.borrowerName,
+        Setor: l.department, 
+        Item: l.item.name, 
+        Qtd: l.quantity, 
+        Status: l.status // Mostra se está EMPRESTADO ou DEVOLVIDO
       }));
     }
 
-    // 5. RELATÓRIO DE COMPRAS DETALHADO
-    else if (type === 'purchases') {
+    // 5. SOLICITAÇÕES DE COMPRAS (TODAS)
+    else if (type === 'purchases_requests') {
       const purchases = await prisma.purchaseRequest.findMany({
         where: { data: { gte: startDate, lte: endDate } }, orderBy: { data: 'desc' }
       });
@@ -71,11 +75,11 @@ export async function GET(req: Request) {
       }));
     }
 
-    // 6. NOVO: GASTOS POR DEPARTAMENTO (Budget Control)
+    // 6. GASTOS POR DEPARTAMENTO
     else if (type === 'spending_dept') {
       const purchases = await prisma.purchaseRequest.findMany({
         where: { 
-          status: 'Entregue', // Considera apenas o que foi efetivamente comprado/entregue
+          status: 'Entregue', 
           data: { gte: startDate, lte: endDate } 
         }
       });
@@ -93,7 +97,7 @@ export async function GET(req: Request) {
       }));
     }
 
-    // 7. NOVO: RELATÓRIO DE REPAROS (Eficiência)
+    // 7. RELATÓRIO DE REPAROS
     else if (type === 'repairs_stats') {
       const repairs = await prisma.repairOrder.findMany({
         where: { dataEntrada: { gte: startDate, lte: endDate } }
@@ -107,6 +111,26 @@ export async function GET(req: Request) {
         Tempo_no_Setor: r.dataSaida 
           ? Math.ceil((new Date(r.dataSaida).getTime() - new Date(r.dataEntrada).getTime()) / (1000 * 3600 * 24)) + ' dias'
           : 'Ainda em manutenção'
+      }));
+    }
+
+    // 8. NOVO: COMPRAS REALIZADAS (Apenas entregues/finalizadas)
+    else if (type === 'completed_purchases') {
+      const purchases = await prisma.purchaseRequest.findMany({
+        where: { 
+          status: 'Entregue', 
+          data: { gte: startDate, lte: endDate } 
+        }, 
+        orderBy: { data: 'desc' }
+      });
+      data = purchases.map(p => ({
+        Data: new Date(p.data).toLocaleDateString('pt-BR'), 
+        Solicitante: p.solicitante,
+        Depto: p.departamento, 
+        Item: p.descricao, 
+        Qtd: p.quantidade,
+        Valor_Total: ((p.valorUnitario || 0) * (parseFloat(p.quantidade) || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        Status: 'CONCLUÍDO'
       }));
     }
 

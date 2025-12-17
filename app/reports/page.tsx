@@ -64,11 +64,15 @@ export default function ReportsPage() {
             <Select onValueChange={setReportType} defaultValue="inventory">
               <SelectTrigger className="bg-background border-input text-foreground h-10"><SelectValue /></SelectTrigger>
               <SelectContent className="bg-surface border-border text-foreground">
-                <SelectItem value="inventory">📦 Inventário Geral (Tudo)</SelectItem>
+                {/* As 3 Opções Principais Solicitadas */}
+                <SelectItem value="inventory">📦 Estoque Atual (Tudo)</SelectItem>
+                <SelectItem value="completed_purchases">✅ Compras Realizadas</SelectItem>
+                <SelectItem value="loans_general">📝 Empréstimos (Geral)</SelectItem>
+                
+                {/* Outros Relatórios */}
                 <SelectItem value="low_stock">🚨 Estoque Crítico</SelectItem>
                 <SelectItem value="transactions">↔️ Movimentações de Consumo</SelectItem>
-                <SelectItem value="loans_history">📝 Histórico de Empréstimos</SelectItem>
-                <SelectItem value="purchases">🛒 Detalhe de Compras</SelectItem>
+                <SelectItem value="purchases_requests">🛒 Solicitações de Compra (Todas)</SelectItem>
                 <SelectItem value="spending_dept">💰 Gastos por Departamento</SelectItem>
                 <SelectItem value="repairs_stats">🔧 Relatório de Reparos</SelectItem>
               </SelectContent>
