@@ -1,54 +1,91 @@
-import Link from "next/link";
-import { LayoutDashboard, Package, Hammer, FileText, ShoppingCart, BarChart3, LogOut, History, Wrench } from "lucide-react";
+'use client'
 
-export function Sidebar() {
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { 
+  LayoutDashboard, 
+  ShoppingCart, 
+  Wrench, 
+  ArrowLeftRight, 
+  History, 
+  Package, 
+  FileText,
+  LogOut // Ícone de sair
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+
+const menuItems = [
+  { href: "/", label: "Visão Geral", icon: LayoutDashboard },
+  { href: "/consumables", label: "Itens de Consumo", icon: Package },
+  { href: "/assets", label: "Ferramentas", icon: Wrench },
+  { href: "/loans", label: "Empréstimos", icon: ArrowLeftRight },
+  { href: "/shopping", label: "Compras", icon: ShoppingCart },
+  { href: "/repairs", label: "Reparos", icon: Wrench },
+  { href: "/reports", label: "Relatórios", icon: FileText },
+  { href: "/history", label: "Histórico Completo", icon: History },
+];
+
+export default function Sidebar() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh(); // Força a atualização para o middleware barrar o acesso
+  }
+
   return (
-    <aside className="fixed left-0 top-0 z-50 h-screen w-72 bg-surface border-r border-border shadow-2xl flex flex-col">
-      {/* Logo */}
-      <div className="p-8 pb-6 border-b border-border/50">
-        <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-          <span className="bg-primary/20 text-primary p-1 rounded">UNASP</span>EC
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1 uppercase tracking-widest font-semibold">Manutenção</p>
+    <aside className="w-64 bg-surface border-r border-border h-screen flex flex-col fixed left-0 top-0 z-50">
+      {/* Cabeçalho da Sidebar */}
+      <div className="p-6 border-b border-border flex items-center gap-2">
+        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+          <Package className="w-5 h-5 text-primary-foreground" />
+        </div>
+        <span className="font-bold text-lg text-white tracking-tight">
+          Almoxarifado
+        </span>
       </div>
 
-      {/* Navegação */}
-      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-        <p className="px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Principal</p>
-        <NavItem href="/" icon={<LayoutDashboard size={20}/>} label="Dashboard" active />
-        
-        <p className="px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider mt-6 mb-2">Gestão</p>
-        <NavItem href="/consumables" icon={<Package size={20}/>} label="Consumíveis" color="text-secondary" />
-        <NavItem href="/assets" icon={<Hammer size={20}/>} label="Ferramentas" color="text-primary" />
-        <NavItem href="/loans" icon={<FileText size={20}/>} label="Empréstimos" color="text-warning" />
-        <NavItem href="/repairs" icon={<Wrench size={20}/>} label="Reparos" color="text-orange-400" /> {/* NOVO */}
-        <NavItem href="/history" icon={<History size={20}/>} label="Histórico" color="text-white" />
-        
-        <p className="px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider mt-6 mb-2">Admin</p>
-        <NavItem href="/shopping" icon={<ShoppingCart size={20}/>} label="Compras" color="text-accent" />
-        <NavItem href="/reports" icon={<BarChart3 size={20}/>} label="Relatórios" />
+      {/* Menu de Navegação */}
+      <nav className="flex-1 p-4 overflow-y-auto">
+        <ul className="space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            
+            return (
+              <li key={item.href}>
+                <Link 
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    isActive 
+                      ? "bg-primary/10 text-primary" 
+                      : "text-muted-foreground hover:bg-muted/50 hover:text-white"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
-      {/* Rodapé */}
-      <div className="p-4 border-t border-border bg-black/20">
-        <button className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-destructive bg-destructive/10 rounded-lg hover:bg-destructive/20 transition-colors">
-          <LogOut size={18} /> Sair
-        </button>
+      {/* Rodapé da Sidebar (Botão de Sair) */}
+      <div className="p-4 border-t border-border mt-auto">
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-950/30 gap-3"
+          onClick={handleLogout}
+        >
+          <LogOut className="w-4 h-4" />
+          Sair do Sistema
+        </Button>
       </div>
     </aside>
   );
-}
-
-function NavItem({ href, icon, label, color = "text-muted-foreground", active = false }: any) {
-  return (
-    <Link 
-      href={href} 
-      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group ${active ? 'bg-primary/10 text-white' : 'hover:bg-white/5 text-muted-foreground hover:text-white'}`}
-    >
-      <div className={`${active ? 'text-primary' : color} group-hover:scale-110 transition-transform`}>
-        {icon}
-      </div>
-      <span className="font-medium">{label}</span>
-    </Link>
-  )
 }

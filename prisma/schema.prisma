@@ -88,3 +88,14 @@ model RepairOrder {
   dataSaida    DateTime?
   observacao   String?
 }
+
+// ... (seus modelos anteriores de Item, Loan, etc)
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String   // Será armazenada como hash
+  role      String   @default("USER") // 'ADMIN', 'USER', 'VIEWER'
+  createdAt DateTime @default(now())
+}
