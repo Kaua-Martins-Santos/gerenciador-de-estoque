@@ -1,16 +1,13 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("POSTGRES_PRISMA_URL")
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
   directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
-// === ITENS DE CONSUMO ===
 model ConsumableItem {
   id           String             @id @default(uuid())
   name         String
@@ -23,40 +20,37 @@ model ConsumableItem {
 }
 
 model StockTransaction {
-  id           String         @id @default(uuid())
-  type         String
-  quantity     Int
-  date         DateTime       @default(now())
-  reason       String?
-  department   String?        
-  itemId       String
-  item         ConsumableItem @relation(fields: [itemId], references: [id])
+  id         String         @id @default(uuid())
+  type       String
+  quantity   Int
+  date       DateTime       @default(now())
+  reason     String?
+  department String?
+  itemId     String
+  item       ConsumableItem @relation(fields: [itemId], references: [id])
 }
 
-// === FERRAMENTAS ===
 model PermanentItem {
-  id           String   @id @default(uuid())
-  name         String
-  category     String
-  quantity     Int      @default(1)
-  loans        Loan[]
-  createdAt    DateTime @default(now())
+  id        String   @id @default(uuid())
+  name      String
+  category  String
+  quantity  Int      @default(1)
+  loans     Loan[]
+  createdAt DateTime @default(now())
 }
 
-// === EMPRÉSTIMOS ===
 model Loan {
-  id             String        @id @default(uuid())
-  borrowerName   String
-  department     String
-  loanDate       DateTime      @default(now())
-  quantity       Int           @default(1)
-  status         String        @default("EMPRESTADO")
-  itemId         String
-  item           PermanentItem @relation(fields: [itemId], references: [id])
-  returnDate     DateTime?
+  id           String        @id @default(uuid())
+  borrowerName String
+  department   String
+  loanDate     DateTime      @default(now())
+  quantity     Int           @default(1)
+  status       String        @default("EMPRESTADO")
+  itemId       String
+  item         PermanentItem @relation(fields: [itemId], references: [id])
+  returnDate   DateTime?
 }
 
-// === COMPRAS ===
 model PurchaseRequest {
   id            String    @id @default(uuid())
   data          DateTime  @default(now())
@@ -68,35 +62,31 @@ model PurchaseRequest {
   justificativa String?
   prioridade    String
   valorUnitario Float?
-  status        String    @default("Solicitado") 
+  status        String    @default("Solicitado")
   observacao    String?
   dataEntrega   DateTime?
   responsavel   String?
 }
 
-// === REPAROS (ATUALIZADO) ===
 model RepairOrder {
-  id           String   @id @default(uuid())
-  dataEntrada  DateTime @default(now())
-  item         String   
-  problema     String   
-  departamento String   // Agora aceita texto livre
-  solicitante  String   
-  // Prioridade REMOVIDA
-  status       String   @default("Aguardando") 
-  tecnico      String?  
-  custoPecas   Float?   
+  id           String    @id @default(uuid())
+  dataEntrada  DateTime  @default(now())
+  item         String
+  problema     String
+  departamento String
+  solicitante  String
+  status       String    @default("Aguardando")
+  tecnico      String?
+  custoPecas   Float?
   dataSaida    DateTime?
   observacao   String?
 }
-
-// ... (seus modelos anteriores de Item, Loan, etc)
 
 model User {
   id        String   @id @default(uuid())
   name      String
   email     String   @unique
-  password  String   // Será armazenada como hash
-  role      String   @default("USER") // 'ADMIN', 'USER', 'VIEWER'
+  password  String
+  role      String   @default("USER")
   createdAt DateTime @default(now())
 }
