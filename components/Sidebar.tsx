@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -10,10 +10,10 @@ import {
   History, 
   Package, 
   FileText,
-  LogOut // Ícone de sair
+  // LogOut // Ícone de sair (Removido)
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button"; // Botão (Removido)
 
 const menuItems = [
   { href: "/", label: "Visão Geral", icon: LayoutDashboard },
@@ -28,13 +28,7 @@ const menuItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-
-  async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh(); // Força a atualização para o middleware barrar o acesso
-  }
+  // const router = useRouter(); // Não precisa mais do router para logout
 
   return (
     <aside className="w-64 bg-surface border-r border-border h-screen flex flex-col fixed left-0 top-0 z-50">
@@ -75,17 +69,7 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      {/* Rodapé da Sidebar (Botão de Sair) */}
-      <div className="p-4 border-t border-border mt-auto">
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-950/30 gap-3"
-          onClick={handleLogout}
-        >
-          <LogOut className="w-4 h-4" />
-          Sair do Sistema
-        </Button>
-      </div>
+      {/* Rodapé da Sidebar (Botão de Sair foi removido daqui) */}
     </aside>
   );
 }
